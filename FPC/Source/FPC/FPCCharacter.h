@@ -19,7 +19,8 @@ UENUM(BlueprintType)
 enum Weapons
 {
 	assaultRifle UMETA(DisplayName = "Assault Rifle"),
-	pistol UMETA(DisplayName = "Pistol")
+	pistol UMETA(DisplayName = "Pistol"),
+	shotgun UMETA(DisplayName = "ShotGun")
 };
 
 UCLASS(config=Game)
@@ -27,15 +28,11 @@ class AFPCCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Gun mesh: 1st person view (seen only by self) */
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	USkeletalMeshComponent* FP_Gun;
-
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
 
-	
+
 public:
 	AFPCCharacter();
 
@@ -43,14 +40,6 @@ protected:
 	virtual void BeginPlay();
 
 public:
-
-	/** Location on gun mesh where projectiles should spawn. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Mesh)
-		USceneComponent* FP_MuzzleLocation;
-
-	/** Location on gun mesh where projectiles should spawn. */
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Mesh)
-		USceneComponent* Pistol_FP_MuzzleLocation;
 
 	/** Pawn mesh: 1st person view (arms; seen only by self) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
@@ -64,6 +53,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
 		USkeletalMeshComponent* Assault_Rifle;
 
+	/** Pawn mesh: 1st person view (arms; seen only by self) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
+		USkeletalMeshComponent* Shot_Gun;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -72,54 +65,76 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-	/** Gun muzzle's offset from the characters location */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Gameplay)
-	FVector GunOffset;
-
-	/** Gun muzzle's offset from the characters location */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-	FVector PistolOffset;
-
 	/** Projectile class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category=Projectile)
 	TSubclassOf<class AFPCProjectile> ProjectileClass;
 
-	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Gameplay)
-	USoundBase* AssaultRifle_FireSound;
-
-	/** AnimMontage to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	/** AnimMontages to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimMontage* AssaultRifle_FireAnimation;
 
-	/** Sound to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		USoundBase* Pistol_FireSound;
-
-	/** AnimMontage to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* Pistol_FireAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* Pistol_ADS_FireAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* Pistol_Fire_FireAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* AssaultRifle_Fire_FireAnimation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* AssaultRifle_ADS_FireAnimation;
+
+	/** AnimMontage to play each time we reload*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* AssaultRifle_ReloadingAnimation;
+
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* AssaultRifle_ReloadingAnimation_Montage;
+
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Pistol_FireAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Pistol_ADS_FireAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Pistol_Fire_FireAnimation;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Pistol_ReloadingAnimation;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Pistol_ReloadingAnimation_Montage;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Shotgun_FireAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Shotgun_Fire_FireAnimation;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Shotgun_ReloadingAnimation;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Shotgun_ReloadingAnimation_Montage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* Shotgun_ADS_FireAnimation;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	FTimerHandle FireTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		float AssaultRifleAmmo;
+		float AssaultRifle_Ammo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		float PistolAmmo;
+		float Pistol_Ammo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		float Shotgun_Ammo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		bool IsReloading;
@@ -130,51 +145,42 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		bool IsFiring;
 
-	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* AssaultRifle_ReloadingAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UParticleSystem* AssaultRifle_MuzzleFlashParticle;
-
-	/** AnimMontage to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* Pistol_ReloadingAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UParticleSystem* Pistol_MuzzleFlashParticle;
+		bool IsShotgunFiring;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Weapon)
 		TEnumAsByte<Weapons> weapon;
 	
-	/** AnimMontage to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* AssaultRifle_ReloadingAnimation_Montage;
-
-	/** AnimMontage to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage* Pistol_ReloadingAnimation_Montage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
-		float AssaultRifleRotation_Pitch;
+		float AssaultRifle_Rotation_Pitch;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
-		float AssaultRifleRotation_Yaw;
+		float AssaultRifle_Rotation_Yaw;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
-		float AssaultRifleRotation_Roll;
+		float AssaultRifle_Rotation_Roll;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
-		float PistolRotation_Pitch;
+		float Pistol_Rotation_Pitch;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
-		float PistolRotation_Yaw;
+		float Pistol_Rotation_Yaw;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
-		float PistolRotation_Roll;
+		float Pistol_Rotation_Roll;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
+		float Shotgun_Rotation_Pitch;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
+		float Shotgun_Rotation_Yaw;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rotation)
+		float Shotgun_Rotation_Roll;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimBlueprintGeneratedClass* AssaultRifle_AnimClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimBlueprintGeneratedClass* Pistol_AnimClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimBlueprintGeneratedClass* ShotGun_AnimClass;
 
 
 protected:
@@ -191,6 +197,8 @@ protected:
 	void WeaponSelectOne();
 
 	void WeaponSelectTwo();
+
+	void WeaponSelectThree();
 
 	void Crouch();
 
@@ -230,10 +238,12 @@ public:
 	void AimDownBP();
 	UFUNCTION(BlueprintImplementableEvent)
 	void ReleaseAimBP();
+
 	/** Returns Mesh1P subobject **/
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
+
 	UFUNCTION()
 	void TimelineProgress(float Value);
 

@@ -57,26 +57,22 @@ AFPCCharacter::AFPCCharacter()
 	Pistol->SetupAttachment(Mesh1P, TEXT("Pistol_GripPoint"));
 	Pistol->SetupAttachment(RootComponent);
 
-	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle Location"));
-	FP_MuzzleLocation->SetupAttachment(Assault_Rifle);
-	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+	Shot_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Shot Gun"));
+	Shot_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
+	Shot_Gun->bCastDynamicShadow = false;
+	Shot_Gun->CastShadow = false;
+	Shot_Gun->SetupAttachment(Mesh1P, TEXT("ShotGun_GripPoint"));
+	Shot_Gun->SetupAttachment(RootComponent);
 
-	Pistol_FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("Pistol Muzzle Location"));
-	Pistol_FP_MuzzleLocation->SetupAttachment(Pistol);
-	Pistol_FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+	AssaultRifle_Ammo = 30;
+	Pistol_Ammo = 15;
+	Shotgun_Ammo = 8;
 
-	// Default offset from the character location for projectiles to spawn
-	GunOffset = FVector(100.0f, 0.0f, 10.0f);
-
-	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P, FP_Gun, and VR_Gun 
-	// are set in the derived blueprint asset named MyCharacter to avoid direct content references in C++.
-	AssaultRifleAmmo = 30;
-	PistolAmmo = 15;
 	IsReloading = false;
 	IsFiring = false;
-	weapon = Weapons::assaultRifle;
+	weapon = Weapons::pistol;
 	Pistol->SetVisibility(false);
-	
+	Shot_Gun->SetVisibility(false);
 }
 
 void AFPCCharacter::BeginPlay()
@@ -84,14 +80,24 @@ void AFPCCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
-	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
-	//FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 	Assault_Rifle->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 	Pistol->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("Pistol_GripPoint"));
+	Shot_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("ShotGun_GripPoint"));
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	Mesh1P->SetHiddenInGame(false, true);
 
-	
+	switch (weapon)
+	{
+	case assaultRifle:
+		WeaponSelectOne();
+		break;
+	case pistol:
+		WeaponSelectTwo();
+		break;
+	case shotgun:
+		WeaponSelectThree();
+		break;
+	}
 }
 
 
@@ -117,6 +123,7 @@ void AFPCCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	// Bind weapon selection Events
 	PlayerInputComponent->BindAction("WeaponSelectOne", IE_Pressed, this, &AFPCCharacter::WeaponSelectOne);
 	PlayerInputComponent->BindAction("WeaponSelectTwo", IE_Pressed, this, &AFPCCharacter::WeaponSelectTwo);
+	PlayerInputComponent->BindAction("WeaponSelectThree", IE_Pressed, this, &AFPCCharacter::WeaponSelectThree);
 
 	// Bind player crouching events
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPCCharacter::Crouch);
@@ -153,7 +160,7 @@ void AFPCCharacter::OnFire()
 	switch (weapon)
 	{
 	case assaultRifle:
-		if (AssaultRifleAmmo > 0 && !IsReloading)
+		if (AssaultRifle_Ammo > 0 && !IsReloading)
 		{
 			// try and fire a projectile
 			if (ProjectileClass != nullptr)
@@ -162,8 +169,7 @@ void AFPCCharacter::OnFire()
 				{
 					if (IsADS)
 					{
-						GunOffset.Y = 2.0f;
-						AssaultRifleRotation_Pitch = 0.0f;
+						AssaultRifle_Rotation_Pitch = 0.0f;
 
 						float RecoilUpDown = FMath::FRandRange(0, -.2);
 						float RecoilLeftRight = FMath::FRandRange(-.01, .01);
@@ -173,30 +179,25 @@ void AFPCCharacter::OnFire()
 					}
 					else
 					{
-						GunOffset.Y = 13.0f;
-						AssaultRifleRotation_Pitch = -2.0f;
-
+						AssaultRifle_Rotation_Pitch = -2.0f;
 
 						float RecoilUpDown = FMath::FRandRange(0, -.5);
 						float RecoilLeftRight = FMath::FRandRange(-0.5, 0.5);
 
 						AddControllerPitchInput(RecoilUpDown);
 						AddControllerYawInput(RecoilLeftRight);
-						
-					}
-					
-					const FRotator SpawnRotation = { GetControlRotation().Pitch + AssaultRifleRotation_Pitch,GetControlRotation().Yaw + AssaultRifleRotation_Yaw,GetControlRotation().Roll + AssaultRifleRotation_Roll};
-					// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-					const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
 
+					}
+
+					const FRotator SpawnRotation = { GetControlRotation().Pitch + AssaultRifle_Rotation_Pitch,GetControlRotation().Yaw + AssaultRifle_Rotation_Yaw,GetControlRotation().Roll + AssaultRifle_Rotation_Roll };
+					const FVector SpawnLocation = Assault_Rifle->GetSocketLocation("ProjectileLocationSocket");
 					//Set Spawn Collision Handling Override
 					FActorSpawnParameters ActorSpawnParams;
 					ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 					// spawn the projectile at the muzzle
 					World->SpawnActor<AFPCProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-					AssaultRifleAmmo--;
-					UGameplayStatics::SpawnEmitterAtLocation(World, AssaultRifle_MuzzleFlashParticle, SpawnLocation, GetActorRotation(), FVector(0.07, 0.07, 0.07));
+					AssaultRifle_Ammo--;
 				}
 			}
 
@@ -224,7 +225,7 @@ void AFPCCharacter::OnFire()
 		break;
 
 	case pistol:
-		if (PistolAmmo > 0 && !IsReloading)
+		if (Pistol_Ammo > 0 && !IsReloading)
 		{
 			// try and fire a projectile
 			if (ProjectileClass != nullptr)
@@ -233,9 +234,8 @@ void AFPCCharacter::OnFire()
 				{
 					if (IsADS)
 					{
-						PistolOffset.Y = 2.0f;
-						PistolRotation_Pitch = -2.5f;
-						PistolRotation_Yaw = 0.3f;
+						Pistol_Rotation_Pitch = -2.5f;
+						Pistol_Rotation_Yaw = 0.3f;
 
 						float RecoilUpDown = FMath::FRandRange(0, -.6);
 						float RecoilLeftRight = FMath::FRandRange(-.3, .3);
@@ -245,9 +245,8 @@ void AFPCCharacter::OnFire()
 					}
 					else
 					{
-						PistolOffset.Y = 8.0f;
-						PistolRotation_Pitch = -3.5f;
-						PistolRotation_Yaw = -1.5f;
+						Pistol_Rotation_Pitch = -3.5f;
+						Pistol_Rotation_Yaw = -1.5f;
 
 						float RecoilUpDown = FMath::FRandRange(0, -.9);
 						float RecoilLeftRight = FMath::FRandRange(-1, 1);
@@ -256,19 +255,15 @@ void AFPCCharacter::OnFire()
 						AddControllerYawInput(RecoilLeftRight);
 					}
 
-					//const FRotator SpawnRotation = GetControlRotation();
-					const FRotator SpawnRotation = {GetControlRotation().Pitch + PistolRotation_Pitch,GetControlRotation().Yaw + PistolRotation_Yaw,GetControlRotation().Roll + PistolRotation_Roll };
-					// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-					const FVector SpawnLocation = ((Pistol_FP_MuzzleLocation != nullptr) ? Pistol_FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(PistolOffset);
-
+					const FRotator SpawnRotation = { GetControlRotation().Pitch + Pistol_Rotation_Pitch,GetControlRotation().Yaw + Pistol_Rotation_Yaw,GetControlRotation().Roll + Pistol_Rotation_Roll };
+					const FVector SpawnLocation = Pistol->GetSocketLocation("ProjectileLocationSocket");
 					//Set Spawn Collision Handling Override
 					FActorSpawnParameters ActorSpawnParams;
 					ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 					// spawn the projectile at the muzzle
 					World->SpawnActor<AFPCProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-					PistolAmmo--;
-					UGameplayStatics::SpawnEmitterAtLocation(World, Pistol_MuzzleFlashParticle, SpawnLocation, FRotator(GetActorRotation()), FVector(0.07, 0.07, 0.07));
+					Pistol_Ammo--;
 					IsFiring = false;
 				}
 			}
@@ -279,15 +274,7 @@ void AFPCCharacter::OnFire()
 				// Get the animation object for the arms mesh
 				if (AnimInstance != nullptr)
 				{
-					if (!IsADS)
-					{
-						AnimInstance->Montage_Play(Pistol_FireAnimation, 2.5f);
-					}
-					else
-					{
-						AnimInstance->Montage_Play(Pistol_ADS_FireAnimation, 2.5f);
-					}
-	
+					AnimInstance->Montage_Play(Pistol_ADS_FireAnimation, 2.5f);
 				}
 			}
 			if (PistolAnimInstance != nullptr)
@@ -296,8 +283,64 @@ void AFPCCharacter::OnFire()
 			}
 		}
 		break;
+
+	case shotgun:
+		if (Shotgun_Ammo > 0 && !IsShotgunFiring)
+		{
+			if (IsReloading)
+			{
+				IsReloading = false;
+			}
+			IsShotgunFiring = true;
+			// try and fire a projectile
+			if (ProjectileClass != nullptr)
+			{
+				if (World != nullptr)
+				{
+					Shotgun_Rotation_Pitch = -3.5f;
+					Shotgun_Rotation_Yaw = -1.5f;
+
+					float RecoilUpDown = FMath::FRandRange(0, -.9);
+					float RecoilLeftRight = FMath::FRandRange(-.6, .6);
+
+					AddControllerPitchInput(RecoilUpDown);
+					AddControllerYawInput(RecoilLeftRight);
+				}
+
+				const FRotator SpawnRotation = { GetControlRotation().Pitch - 3.5f,GetControlRotation().Yaw + 0.5f, GetControlRotation().Roll};
+				const FVector SpawnLocation = Shot_Gun->GetSocketLocation("ProjectileLocationSocket");
+				//Set Spawn Collision Handling Override
+				FActorSpawnParameters ActorSpawnParams;
+				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+				// spawn the projectile at the muzzle
+				World->SpawnActor<AFPCProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+				Shotgun_Ammo--;
+			}
+
+			// try and play a firing animation if specified
+			if (Shotgun_FireAnimation != nullptr)
+			{
+				// Get the animation object for the arms mesh
+				if (AnimInstance != nullptr)
+				{
+					if (!IsADS)
+					{
+						AnimInstance->Montage_Play(Shotgun_FireAnimation, 1.0f);
+					}
+					else
+					{
+						AnimInstance->Montage_Play(Shotgun_ADS_FireAnimation, 1.0f);
+					}
+				}
+			}
+			if (ShotGun_AnimClass != nullptr)
+			{
+				Shot_Gun->PlayAnimation(Shotgun_Fire_FireAnimation, false);
+			}
+		}
+		break;
 	}
-	
 }
 
 void AFPCCharacter::OnBeginFire()
@@ -309,6 +352,10 @@ void AFPCCharacter::OnBeginFire()
 		IsFiring = true;
 		break;
 	case pistol:
+		OnFire();
+		IsFiring = true;
+		break;
+	case shotgun:
 		OnFire();
 		IsFiring = true;
 		break;
@@ -342,39 +389,99 @@ void AFPCCharacter::Reload()
 		IsReloading = true;
 		if (AnimInstance != nullptr)
 		{
-			AnimInstance->Montage_Play(Pistol_ReloadingAnimation, 1.0f);
-			
+			AnimInstance->Montage_Play(Pistol_ReloadingAnimation, 1.0f);	
 		}
 		if (Pistol_ReloadingAnimation_Montage != nullptr)
 		{
 			Pistol->PlayAnimation(Pistol_ReloadingAnimation_Montage, false);
 		}
 		break;
+	case shotgun:
+		if (Shotgun_Ammo < 9 && !IsReloading && !IsShotgunFiring)
+		{
+			IsReloading = true;	
+		}
+		break;
 	}
-	
 }
 
 void AFPCCharacter::WeaponSelectOne()
 {
-	if (!IsReloading)
+	if (!IsReloading && !IsADS)
 	{
-	weapon = Weapons::assaultRifle;
-	Pistol->SetVisibility(false);
-	Assault_Rifle->SetVisibility(true);
-	Mesh1P->SetAnimInstanceClass(AssaultRifle_AnimClass);
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalOffset(FVector(-5.0f, 15.0f, -13.0f));
+		}
+
+		weapon = Weapons::assaultRifle;
+		Assault_Rifle->SetVisibility(true);
+		Assault_Rifle->bPauseAnims = false;
+
+		Pistol->SetVisibility(false);
+		Pistol->bPauseAnims = true;
+
+		Shot_Gun->bPauseAnims = true;
+		Shot_Gun->SetVisibility(false);
+
+		if (AssaultRifle_AnimClass != nullptr)
+		{
+			Mesh1P->SetAnimInstanceClass(AssaultRifle_AnimClass);
+		}
 	}
 }
 
 void AFPCCharacter::WeaponSelectTwo()
 {
-	if (!IsReloading)
+	if (!IsReloading && !IsADS)
 	{
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalOffset(FVector(-5.0f, 15.0f, -13.0f));
+		}
 		weapon = Weapons::pistol;
 		Pistol->SetVisibility(true);
+		Pistol->bPauseAnims = false;
+
+		Assault_Rifle->bPauseAnims = true;
+		Shot_Gun->bPauseAnims = true;
+
+		Shot_Gun->SetVisibility(false);
 		Assault_Rifle->SetVisibility(false);
-		Mesh1P->SetAnimInstanceClass(Pistol_AnimClass);
+
+		if (Pistol_AnimClass != nullptr)
+		{
+			Mesh1P->SetAnimInstanceClass(Pistol_AnimClass);
+		}
 	}
 }
+
+void AFPCCharacter::WeaponSelectThree()
+{
+	if (!IsReloading && !IsADS)
+	{
+		if (weapon != shotgun)
+		{
+			Mesh1P->AddLocalOffset(FVector(5.0f, -15.0f, 13.0f));
+		}
+		weapon = Weapons::shotgun;
+		Shot_Gun->bPauseAnims = false;
+
+		Pistol->SetVisibility(false);
+		Pistol->bPauseAnims = true;
+
+		Assault_Rifle->bPauseAnims = true;
+		Assault_Rifle->SetVisibility(false);
+
+		Shot_Gun->SetVisibility(true);
+
+		if (ShotGun_AnimClass != nullptr)
+		{
+			Mesh1P->SetAnimInstanceClass(ShotGun_AnimClass);
+		}
+	}
+}
+
 
 void AFPCCharacter::Crouch()
 {
@@ -392,16 +499,16 @@ void AFPCCharacter::UnCrouch()
 
 void AFPCCharacter::AimDownSight()
 {
-	IsADS = true;
-	GetCharacterMovement()->MaxWalkSpeed = 250.0f;
-	AimDownBP();
+		IsADS = true;
+		GetCharacterMovement()->MaxWalkSpeed = 250.0f;
+		AimDownBP();
 }
 
 void AFPCCharacter::ReleaseAim()
 {
-	IsADS = false;
-	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-	ReleaseAimBP();
+		IsADS = false;
+		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+		ReleaseAimBP();
 }
 
 
