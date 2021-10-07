@@ -1,5 +1,16 @@
 # FPC
 This Repo contains a First person Shooter Project made within Unreal Engine 4.
+
+<p align="center">
+Shotgun Showcase
+</p>
+
+<p align="center">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/cy4gVkLlAww" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</p>
+
+This video Showcases the gameplay utilizing the pump action shotgun, allowing for another weapon option for the player to utilize for close range encounters. It features an incrementing reloading system that can be interrupted to allow for firing the weapon as you are reloading.
+
 <p align="center">
 Rifle & Pistol Showcase
 </p>
