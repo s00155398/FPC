@@ -2,6 +2,7 @@
 
 #include "FPCProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "particles/ParticleSystemComponent.h"
 #include "Components/SphereComponent.h"
 
 AFPCProjectile::AFPCProjectile() 
@@ -16,6 +17,9 @@ AFPCProjectile::AFPCProjectile()
 	CollisionComp->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
 	CollisionComp->CanCharacterStepUpOn = ECB_No;
 
+	TracerParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>("Tracer Particle System");
+	TracerParticleSystem->SetupAttachment(CollisionComp);
+
 	// Set as root component
 	RootComponent = CollisionComp;
 
@@ -27,6 +31,8 @@ AFPCProjectile::AFPCProjectile()
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = false;
 
+
+	
 	// Die after 3 seconds by default
 	InitialLifeSpan = 3.0f;
 }

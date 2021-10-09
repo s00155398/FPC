@@ -12,7 +12,9 @@
 #include "MotionControllerComponent.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Components/TimelineComponent.h"
-#include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
+#include "FPCProjectile_AssaultRifle.h"
+#include "FPCProjectile_Pistol.h"
+#include "FPCProjectile_Shotgun.h"
 #include "GameFramework/CharacterMovementComponent.h"
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -163,7 +165,7 @@ void AFPCCharacter::OnFire()
 		if (AssaultRifle_Ammo > 0 && !IsReloading)
 		{
 			// try and fire a projectile
-			if (ProjectileClass != nullptr)
+			if (AssaultRifle_ProjectileClass != nullptr)
 			{
 				if (World != nullptr)
 				{
@@ -196,7 +198,7 @@ void AFPCCharacter::OnFire()
 					ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 					// spawn the projectile at the muzzle
-					World->SpawnActor<AFPCProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+					World->SpawnActor<AFPCProjectile_AssaultRifle>(AssaultRifle_ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
 					AssaultRifle_Ammo--;
 				}
 			}
@@ -228,7 +230,7 @@ void AFPCCharacter::OnFire()
 		if (Pistol_Ammo > 0 && !IsReloading)
 		{
 			// try and fire a projectile
-			if (ProjectileClass != nullptr)
+			if (Pistol_ProjectileClass != nullptr)
 			{
 				if (World != nullptr)
 				{
@@ -262,7 +264,7 @@ void AFPCCharacter::OnFire()
 					ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 					// spawn the projectile at the muzzle
-					World->SpawnActor<AFPCProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+					World->SpawnActor<AFPCProjectile_Pistol>(Pistol_ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
 					Pistol_Ammo--;
 					IsFiring = false;
 				}
@@ -293,7 +295,7 @@ void AFPCCharacter::OnFire()
 			}
 			IsShotgunFiring = true;
 			// try and fire a projectile
-			if (ProjectileClass != nullptr)
+			if (Shotgun_ProjectileClass != nullptr)
 			{
 				if (World != nullptr)
 				{
@@ -307,14 +309,14 @@ void AFPCCharacter::OnFire()
 					AddControllerYawInput(RecoilLeftRight);
 				}
 
-				const FRotator SpawnRotation = { GetControlRotation().Pitch - 3.5f,GetControlRotation().Yaw + 0.5f, GetControlRotation().Roll};
+				const FRotator SpawnRotation = { GetControlRotation().Pitch - 4.4f,GetControlRotation().Yaw + -0.65f, GetControlRotation().Roll};
 				const FVector SpawnLocation = Shot_Gun->GetSocketLocation("ProjectileLocationSocket");
 				//Set Spawn Collision Handling Override
 				FActorSpawnParameters ActorSpawnParams;
 				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 				// spawn the projectile at the muzzle
-				World->SpawnActor<AFPCProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+				World->SpawnActor<AFPCProjectile_Shotgun>(Shotgun_ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
 				Shotgun_Ammo--;
 			}
 
@@ -501,6 +503,10 @@ void AFPCCharacter::AimDownSight()
 {
 		IsADS = true;
 		GetCharacterMovement()->MaxWalkSpeed = 250.0f;
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalRotation(FRotator(0.0f, -0.5f, 0.0f));
+		}
 		AimDownBP();
 }
 
@@ -508,6 +514,10 @@ void AFPCCharacter::ReleaseAim()
 {
 		IsADS = false;
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalRotation(FRotator(0.0f, 0.5f, 0.0f));
+		}
 		ReleaseAimBP();
 }
 

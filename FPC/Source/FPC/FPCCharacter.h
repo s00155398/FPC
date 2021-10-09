@@ -1,7 +1,5 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
-
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Components/TimelineComponent.h"
@@ -22,12 +20,10 @@ enum Weapons
 	pistol UMETA(DisplayName = "Pistol"),
 	shotgun UMETA(DisplayName = "ShotGun")
 };
-
 UCLASS(config=Game)
 class AFPCCharacter : public ACharacter
 {
 	GENERATED_BODY()
-
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FirstPersonCameraComponent;
@@ -67,7 +63,15 @@ public:
 
 	/** Projectile class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category=Projectile)
-	TSubclassOf<class AFPCProjectile> ProjectileClass;
+	TSubclassOf<class AFPCProjectile_AssaultRifle> AssaultRifle_ProjectileClass;
+
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+	TSubclassOf<class AFPCProjectile_Pistol> Pistol_ProjectileClass;
+
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+	TSubclassOf<class AFPCProjectile_Shotgun> Shotgun_ProjectileClass;
 
 	/** AnimMontages to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
