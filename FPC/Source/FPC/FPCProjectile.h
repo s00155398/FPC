@@ -14,9 +14,7 @@ class AFPCProjectile : public AActor
 {
 	GENERATED_BODY()
 
-	/** Sphere collision component */
-	UPROPERTY(VisibleDefaultsOnly, Category=Projectile)
-	USphereComponent* CollisionComp;
+	
 
 	/** Projectile movement component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
@@ -28,6 +26,11 @@ class AFPCProjectile : public AActor
 	
 public:
 	AFPCProjectile();
+
+	/** Sphere collision component */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Projectile)
+	USphereComponent* CollisionComp;
+
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Gaemplay, meta = (AllowPrivateAccess = "true"))
 	float ImpactMultiplier = 1000.0f;
