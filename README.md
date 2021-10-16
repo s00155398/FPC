@@ -2,6 +2,16 @@
 This Repo contains a First person Shooter Project made within Unreal Engine 4.
 
 <p align="center">
+Rocket Launcher Showcase
+</p>
+
+<p align="center">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ahoeDbGq-94" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</p>
+
+This video details the implementation and use of the Rocket Launcher weapon now available to the player. As shown, the rocket projectile produces an explsion that kills and flings around enemies.
+
+<p align="center">
 Shotgun Showcase
 </p>
 
