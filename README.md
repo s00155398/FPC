@@ -1,5 +1,5 @@
 # FPC
-This Repo contains a First person Shooter Project made within Unreal Engine 4.
+This Repo contains a First person Shooter Project using C++, made within Unreal Engine 4.
 
 <p align="center">
 Rocket Launcher Showcase
