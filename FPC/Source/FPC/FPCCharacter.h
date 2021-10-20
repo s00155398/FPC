@@ -1,4 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
@@ -19,7 +18,8 @@ enum Weapons
 	assaultRifle UMETA(DisplayName = "Assault Rifle"),
 	pistol UMETA(DisplayName = "Pistol"),
 	shotgun UMETA(DisplayName = "ShotGun"),
-	rocket UMETA(DisplayName = "Rocket")
+	rocket UMETA(DisplayName = "Rocket"),
+	grenadeLauncher UMETA(DisplayName = "Grenade Launcher")
 };
 UCLASS(config=Game)
 class AFPCCharacter : public ACharacter
@@ -58,6 +58,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
 		USkeletalMeshComponent* Rocket_Launcher;
 
+	/** Pawn mesh: 1st person view (arms; seen only by self) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
+		USkeletalMeshComponent* Grenade_Launcher;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -82,78 +86,80 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPCProjectile_Rocket> Rocket_ProjectileClass;
 
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+	TSubclassOf<class AFPCProjectile_Grenade> Grenade_ProjectileClass;
+
 	/** AnimMontages to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimMontage* AssaultRifle_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* AssaultRifle_Fire_FireAnimation;
+	UAnimMontage* AssaultRifle_Fire_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* AssaultRifle_ADS_FireAnimation;
+	UAnimMontage* AssaultRifle_ADS_FireAnimation;
 
 	/** AnimMontage to play each time we reload*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* AssaultRifle_ReloadingAnimation;
+	UAnimMontage* AssaultRifle_ReloadingAnimation;
 
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* AssaultRifle_ReloadingAnimation_Montage;
+	UAnimMontage* AssaultRifle_ReloadingAnimation_Montage;
 
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Pistol_FireAnimation;
+	UAnimMontage* Pistol_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Pistol_ADS_FireAnimation;
+	UAnimMontage* Pistol_ADS_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Pistol_Fire_FireAnimation;
+	UAnimMontage* Pistol_Fire_FireAnimation;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Pistol_ReloadingAnimation;
+	UAnimMontage* Pistol_ReloadingAnimation;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Pistol_ReloadingAnimation_Montage;
+	UAnimMontage* Pistol_ReloadingAnimation_Montage;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Shotgun_FireAnimation;
+	UAnimMontage* Shotgun_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Shotgun_Fire_FireAnimation;
+	UAnimMontage* Shotgun_Fire_FireAnimation;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Shotgun_ReloadingAnimation;
+	UAnimMontage* Shotgun_ReloadingAnimation;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Shotgun_ReloadingAnimation_Montage;
+	UAnimMontage* Shotgun_ReloadingAnimation_Montage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Shotgun_ADS_FireAnimation;
+	UAnimMontage* Shotgun_ADS_FireAnimation;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Rocket_FireAnimation;
+	UAnimMontage* Rocket_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Rocket_Fire_FireAnimation;
+	UAnimMontage* Rocket_Fire_FireAnimation;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Rocket_ReloadingAnimation;
-
-	/** AnimMontage to play each time we fire */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Rocket_ReloadingAnimation_Montage;
+	UAnimMontage* Rocket_ReloadingAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* Rocket_ADS_FireAnimation;
+	UAnimMontage* Rocket_ADS_FireAnimation;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* GrenadeLauncher_Fire_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	FTimerHandle FireTimerHandle;
@@ -169,6 +175,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		float Rocket_Ammo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		float GrenadeLauncher_Ammo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		bool IsReloading;
@@ -219,7 +228,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimBlueprintGeneratedClass* Rocket_AnimClass;
 
-
 protected:
 	
 	/** Fires a projectile. */
@@ -238,6 +246,8 @@ protected:
 	void WeaponSelectThree();
 
 	void WeaponSelectFour();
+
+	void WeaponSelectFive();
 
 	void Crouch();
 

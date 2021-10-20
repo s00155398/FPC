@@ -16,6 +16,7 @@
 #include "FPCProjectile_Pistol.h"
 #include "FPCProjectile_Shotgun.h"
 #include "FPCProjectile_Rocket.h"
+#include "FPCProjectile_Grenade.h"
 #include "GameFramework/CharacterMovementComponent.h"
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -74,10 +75,19 @@ AFPCCharacter::AFPCCharacter()
 	Rocket_Launcher->SetupAttachment(Mesh1P, TEXT("RocketLauncher_GripSocket"));
 	Rocket_Launcher->SetupAttachment(RootComponent);
 
+	Grenade_Launcher = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Grenade Launcher"));
+	Grenade_Launcher->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
+	Grenade_Launcher->bCastDynamicShadow = false;
+	Grenade_Launcher->CastShadow = false;
+	Grenade_Launcher->SetupAttachment(Mesh1P, TEXT("GrenadeLauncher_GripSocket"));
+	Grenade_Launcher->SetupAttachment(RootComponent);
+
+
 	AssaultRifle_Ammo = 30;
 	Pistol_Ammo = 15;
 	Shotgun_Ammo = 8;
 	Rocket_Ammo = 3;
+	GrenadeLauncher_Ammo = 6;
 
 	IsReloading = false;
 	IsFiring = false;
@@ -85,7 +95,7 @@ AFPCCharacter::AFPCCharacter()
 	Pistol->SetVisibility(false);
 	Shot_Gun->SetVisibility(false);
 	Rocket_Launcher->SetVisibility(false);
-
+	Grenade_Launcher->SetVisibility(false);
 }
 
 void AFPCCharacter::BeginPlay()
@@ -97,6 +107,7 @@ void AFPCCharacter::BeginPlay()
 	Pistol->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("Pistol_GripPoint"));
 	Shot_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("ShotGun_GripPoint"));
 	Rocket_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("RocketLauncher_GripSocket"));
+	Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket"));
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	Mesh1P->SetHiddenInGame(false, true);
 
@@ -113,6 +124,9 @@ void AFPCCharacter::BeginPlay()
 		break;
 	case rocket:
 		WeaponSelectFour();
+		break;
+	case grenadeLauncher:
+		WeaponSelectFive();
 		break;
 	}
 }
@@ -142,6 +156,7 @@ void AFPCCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	PlayerInputComponent->BindAction("WeaponSelectTwo", IE_Pressed, this, &AFPCCharacter::WeaponSelectTwo);
 	PlayerInputComponent->BindAction("WeaponSelectThree", IE_Pressed, this, &AFPCCharacter::WeaponSelectThree);
 	PlayerInputComponent->BindAction("WeaponSelectFour", IE_Pressed, this, &AFPCCharacter::WeaponSelectFour);
+	PlayerInputComponent->BindAction("WeaponSelectFive", IE_Pressed, this, &AFPCCharacter::WeaponSelectFive);
 
 	// Bind player crouching events
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPCCharacter::Crouch);
@@ -319,14 +334,20 @@ void AFPCCharacter::OnFire()
 			if (Shotgun_ProjectileClass != nullptr)
 			{
 				
-				const FRotator SpawnRotation = { GetControlRotation().Pitch - 4.4f,GetControlRotation().Yaw + -0.65f, GetControlRotation().Roll};
+				const FRotator SpawnRotationOne = { GetControlRotation().Pitch - 4.4f,GetControlRotation().Yaw + -0.65f, GetControlRotation().Roll};
+				const FRotator SpawnRotationTwo = { GetControlRotation().Pitch - 4.4f,GetControlRotation().Yaw + -1.0f, GetControlRotation().Roll };
+				const FRotator SpawnRotationThree = { GetControlRotation().Pitch - 4.4f,GetControlRotation().Yaw + -1.65f, GetControlRotation().Roll };
+				const FRotator SpawnRotationFour = { GetControlRotation().Pitch - 4.4f,GetControlRotation().Yaw + 0.65f, GetControlRotation().Roll };
 				const FVector SpawnLocation = Shot_Gun->GetSocketLocation("ProjectileLocationSocket");
 				//Set Spawn Collision Handling Override
 				FActorSpawnParameters ActorSpawnParams;
 				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 				// spawn the projectile at the muzzle
-				World->SpawnActor<AFPCProjectile_Shotgun>(Shotgun_ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+				World->SpawnActor<AFPCProjectile_Shotgun>(Shotgun_ProjectileClass, SpawnLocation, SpawnRotationOne, ActorSpawnParams);
+				World->SpawnActor<AFPCProjectile_Shotgun>(Shotgun_ProjectileClass, SpawnLocation, SpawnRotationTwo, ActorSpawnParams);
+				World->SpawnActor<AFPCProjectile_Shotgun>(Shotgun_ProjectileClass, SpawnLocation, SpawnRotationThree, ActorSpawnParams);
+				World->SpawnActor<AFPCProjectile_Shotgun>(Shotgun_ProjectileClass, SpawnLocation, SpawnRotationFour, ActorSpawnParams);
 				Shotgun_Ammo--;
 
 				if (World != nullptr)
@@ -432,6 +453,74 @@ void AFPCCharacter::OnFire()
 			}
 		}
 		break;
+	case grenadeLauncher:
+		if (GrenadeLauncher_Ammo > 0 && !IsReloading && !IsShotgunFiring)
+		{
+			// try and fire a projectile
+			if (Grenade_ProjectileClass != nullptr)
+			{
+				IsShotgunFiring = true;
+				if (World != nullptr)
+				{
+					const FRotator SpawnRotation = { GetControlRotation().Pitch - 1.2f,GetControlRotation().Yaw + 0.3f ,GetControlRotation().Roll };
+					const FVector SpawnLocation = Grenade_Launcher->GetSocketLocation("ProjectileLocationSocket");
+					//Set Spawn Collision Handling Override
+					FActorSpawnParameters ActorSpawnParams;
+					ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+					// spawn the projectile at the muzzle
+					World->SpawnActor<AFPCProjectile_Grenade>(Grenade_ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+					GrenadeLauncher_Ammo--;
+					IsFiring = false;
+
+					if (IsADS)
+					{
+						float RecoilUpDown = FMath::FRandRange(0, -.6);
+						float RecoilLeftRight = FMath::FRandRange(-.3, .3);
+
+						AddControllerPitchInput(RecoilUpDown);
+						AddControllerYawInput(RecoilLeftRight);
+					}
+					else
+					{
+						float RecoilUpDown = FMath::FRandRange(0, -.9);
+						float RecoilLeftRight = FMath::FRandRange(-1, 1);
+
+						AddControllerPitchInput(RecoilUpDown);
+						AddControllerYawInput(RecoilLeftRight);
+					}
+				}
+			}
+
+			// try and play a firing animation if specified
+			if (IsADS)
+			{
+				if (Rocket_FireAnimation != nullptr)
+				{
+					// Get the animation object for the arms mesh
+					if (AnimInstance != nullptr)
+					{
+						AnimInstance->Montage_Play(Rocket_ADS_FireAnimation, 2.5f);
+					}
+				}
+			}
+			else
+			{
+				if (Rocket_FireAnimation != nullptr)
+				{
+					// Get the animation object for the arms mesh
+					if (AnimInstance != nullptr)
+					{
+						AnimInstance->Montage_Play(Rocket_FireAnimation, 2.5f);
+					}
+				}
+			}
+			if (Rocket_AnimClass != nullptr)
+			{
+				Grenade_Launcher->PlayAnimation(GrenadeLauncher_Fire_FireAnimation, false);
+			}
+		}
+		break;
 	}
 }
 
@@ -455,6 +544,10 @@ void AFPCCharacter::OnBeginFire()
 		OnFire();
 		IsFiring = true;
 		break;
+	case grenadeLauncher:
+		OnFire();
+		IsFiring = true;
+		break;
 	}	
 }
 
@@ -467,54 +560,60 @@ void AFPCCharacter::OnEndFire()
 void AFPCCharacter::Reload()
 {
 	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-	switch (weapon)
+	if (!IsReloading)
 	{
-	case assaultRifle:
-		IsReloading = true;
-		if (AnimInstance != nullptr)
+		switch (weapon)
 		{
-			AnimInstance->Montage_Play(AssaultRifle_ReloadingAnimation, 1.0f);
-			
+		case assaultRifle:
+			IsReloading = true;
+			if (AnimInstance != nullptr)
+			{
+				AnimInstance->Montage_Play(AssaultRifle_ReloadingAnimation, 1.0f);
+
+			}
+			if (AssaultRifle_ReloadingAnimation_Montage != nullptr)
+			{
+				Assault_Rifle->PlayAnimation(AssaultRifle_ReloadingAnimation_Montage, false);
+			}
+			break;
+		case pistol:
+			IsReloading = true;
+			if (AnimInstance != nullptr)
+			{
+				AnimInstance->Montage_Play(Pistol_ReloadingAnimation, 1.0f);
+			}
+			if (Pistol_ReloadingAnimation_Montage != nullptr)
+			{
+				Pistol->PlayAnimation(Pistol_ReloadingAnimation_Montage, false);
+			}
+			break;
+		case shotgun:
+			if (Shotgun_Ammo < 9 && !IsReloading && !IsShotgunFiring)
+			{
+				IsReloading = true;
+			}
+			break;
+		case rocket:
+			IsReloading = true;
+			if (AnimInstance != nullptr)
+			{
+				AnimInstance->Montage_Play(Rocket_ReloadingAnimation, 1.0f);
+			}
+			break;
+		case grenadeLauncher:
+			IsReloading = true;
+			if (AnimInstance != nullptr)
+			{
+				AnimInstance->Montage_Play(Rocket_ReloadingAnimation, 1.0f);
+			}
+			break;
 		}
-		if (AssaultRifle_ReloadingAnimation_Montage != nullptr)
-		{
-			Assault_Rifle->PlayAnimation(AssaultRifle_ReloadingAnimation_Montage, false);
-		}
-		break;
-	case pistol:
-		IsReloading = true;
-		if (AnimInstance != nullptr)
-		{
-			AnimInstance->Montage_Play(Pistol_ReloadingAnimation, 1.0f);	
-		}
-		if (Pistol_ReloadingAnimation_Montage != nullptr)
-		{
-			Pistol->PlayAnimation(Pistol_ReloadingAnimation_Montage, false);
-		}
-		break;
-	case shotgun:
-		if (Shotgun_Ammo < 9 && !IsReloading && !IsShotgunFiring)
-		{
-			IsReloading = true;	
-		}
-		break;
-	case rocket:
-		IsReloading = true;
-		if (AnimInstance != nullptr)
-		{
-			AnimInstance->Montage_Play(Rocket_ReloadingAnimation, 1.0f);
-		}
-		if (Pistol_ReloadingAnimation_Montage != nullptr)
-		{
-			Rocket_Launcher->PlayAnimation(Rocket_ReloadingAnimation_Montage, false);
-		}
-		break;
 	}
 }
 
 void AFPCCharacter::WeaponSelectOne()
 {
-	if (!IsReloading && !IsADS)
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
 	{
 		if (weapon == shotgun)
 		{
@@ -531,6 +630,9 @@ void AFPCCharacter::WeaponSelectOne()
 		Rocket_Launcher->SetVisibility(false);
 		Rocket_Launcher->bPauseAnims = true;
 
+		Grenade_Launcher->bPauseAnims = true;
+		Grenade_Launcher->SetVisibility(false);
+
 		Shot_Gun->bPauseAnims = true;
 		Shot_Gun->SetVisibility(false);
 
@@ -543,7 +645,7 @@ void AFPCCharacter::WeaponSelectOne()
 
 void AFPCCharacter::WeaponSelectTwo()
 {
-	if (!IsReloading && !IsADS)
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
 	{
 		if (weapon == shotgun)
 		{
@@ -559,6 +661,9 @@ void AFPCCharacter::WeaponSelectTwo()
 		Assault_Rifle->bPauseAnims = true;
 		Shot_Gun->bPauseAnims = true;
 
+		Grenade_Launcher->bPauseAnims = true;
+		Grenade_Launcher->SetVisibility(false);
+
 		Shot_Gun->SetVisibility(false);
 		Assault_Rifle->SetVisibility(false);
 
@@ -571,7 +676,7 @@ void AFPCCharacter::WeaponSelectTwo()
 
 void AFPCCharacter::WeaponSelectThree()
 {
-	if (!IsReloading && !IsADS)
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
 	{
 		if (weapon != shotgun)
 		{
@@ -589,6 +694,9 @@ void AFPCCharacter::WeaponSelectThree()
 		Assault_Rifle->bPauseAnims = true;
 		Assault_Rifle->SetVisibility(false);
 
+		Grenade_Launcher->bPauseAnims = true;
+		Grenade_Launcher->SetVisibility(false);
+
 		Shot_Gun->SetVisibility(true);
 
 		if (ShotGun_AnimClass != nullptr)
@@ -600,7 +708,7 @@ void AFPCCharacter::WeaponSelectThree()
 
 void AFPCCharacter::WeaponSelectFour()
 {
-	if (!IsReloading && !IsADS)
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
 	{
 		if (weapon == shotgun)
 		{
@@ -617,12 +725,47 @@ void AFPCCharacter::WeaponSelectFour()
 		Shot_Gun->SetVisibility(false);
 		Shot_Gun->bPauseAnims = true;
 
+		Grenade_Launcher->bPauseAnims = true;
+		Grenade_Launcher->SetVisibility(false);
+
 		Rocket_Launcher->bPauseAnims = false;
 		Rocket_Launcher->SetVisibility(true);
 
 		if (Rocket_AnimClass != nullptr)
 		{
 			Mesh1P->SetAnimInstanceClass(Rocket_AnimClass);
+		}
+	}
+}
+
+void AFPCCharacter::WeaponSelectFive()
+{
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
+	{
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalOffset(FVector(-5.0f, 15.0f, -13.0f));
+		}
+		weapon = Weapons::grenadeLauncher;
+
+		Pistol->SetVisibility(false);
+		Pistol->bPauseAnims = true;
+
+		Assault_Rifle->bPauseAnims = true;
+		Assault_Rifle->SetVisibility(false);
+
+		Shot_Gun->SetVisibility(false);
+		Shot_Gun->bPauseAnims = true;
+
+		Rocket_Launcher->bPauseAnims = true;
+		Rocket_Launcher->SetVisibility(false);
+
+		Grenade_Launcher->bPauseAnims = false;
+		Grenade_Launcher->SetVisibility(true);
+
+		if (Rocket_AnimClass != nullptr)
+		{
+			 Mesh1P->SetAnimInstanceClass(Rocket_AnimClass);
 		}
 	}
 }
@@ -650,9 +793,13 @@ void AFPCCharacter::AimDownSight()
 		{
 			Mesh1P->AddLocalRotation(FRotator(0.0f, -0.5f, 0.0f));
 		}
-		if (weapon == rocket)
+		else if (weapon == rocket)
 		{
 			Rocket_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("RocketLauncher_GripSocket_ADS"));
+		}
+		else if (weapon == grenadeLauncher)
+		{
+			Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket_ADS"));
 		}
 		AimDownBP();
 }
@@ -665,10 +812,15 @@ void AFPCCharacter::ReleaseAim()
 		{
 			Mesh1P->AddLocalRotation(FRotator(0.0f, 0.5f, 0.0f));
 		}
-		if (weapon == rocket)
+		else if (weapon == rocket)
 		{
 			Rocket_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("RocketLauncher_GripSocket"));
 		}
+		else if (weapon == grenadeLauncher)
+		{
+			Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket"));
+		}
+
 		ReleaseAimBP();
 }
 
