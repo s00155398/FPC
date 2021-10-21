@@ -17,6 +17,7 @@
 #include "FPCProjectile_Shotgun.h"
 #include "FPCProjectile_Rocket.h"
 #include "FPCProjectile_Grenade.h"
+#include "FPCProjectile_Sniper.h"
 #include "GameFramework/CharacterMovementComponent.h"
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -82,11 +83,19 @@ AFPCCharacter::AFPCCharacter()
 	Grenade_Launcher->SetupAttachment(Mesh1P, TEXT("GrenadeLauncher_GripSocket"));
 	Grenade_Launcher->SetupAttachment(RootComponent);
 
+	Sniper_Rifle = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Sniper Rifle"));
+	Sniper_Rifle->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
+	Sniper_Rifle->bCastDynamicShadow = false;
+	Sniper_Rifle->CastShadow = false;
+	Sniper_Rifle->SetupAttachment(Mesh1P, TEXT("Sniper_GripSocket"));
+	Sniper_Rifle->SetupAttachment(RootComponent);
+
 
 	AssaultRifle_Ammo = 30;
 	Pistol_Ammo = 15;
 	Shotgun_Ammo = 8;
 	Rocket_Ammo = 3;
+	Sniper_Ammo = 10;
 	GrenadeLauncher_Ammo = 6;
 
 	IsReloading = false;
@@ -96,6 +105,7 @@ AFPCCharacter::AFPCCharacter()
 	Shot_Gun->SetVisibility(false);
 	Rocket_Launcher->SetVisibility(false);
 	Grenade_Launcher->SetVisibility(false);
+	Sniper_Rifle->SetVisibility(false);
 }
 
 void AFPCCharacter::BeginPlay()
@@ -108,6 +118,7 @@ void AFPCCharacter::BeginPlay()
 	Shot_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("ShotGun_GripPoint"));
 	Rocket_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("RocketLauncher_GripSocket"));
 	Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket"));
+	Sniper_Rifle->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("Sniper_GripSocket"));
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	Mesh1P->SetHiddenInGame(false, true);
 
@@ -127,6 +138,9 @@ void AFPCCharacter::BeginPlay()
 		break;
 	case grenadeLauncher:
 		WeaponSelectFive();
+		break;
+	case sniper:
+		WeaponSelectSix();
 		break;
 	}
 }
@@ -157,6 +171,8 @@ void AFPCCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	PlayerInputComponent->BindAction("WeaponSelectThree", IE_Pressed, this, &AFPCCharacter::WeaponSelectThree);
 	PlayerInputComponent->BindAction("WeaponSelectFour", IE_Pressed, this, &AFPCCharacter::WeaponSelectFour);
 	PlayerInputComponent->BindAction("WeaponSelectFive", IE_Pressed, this, &AFPCCharacter::WeaponSelectFive);
+	PlayerInputComponent->BindAction("WeaponSelectSix", IE_Pressed, this, &AFPCCharacter::WeaponSelectSix);
+	
 
 	// Bind player crouching events
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFPCCharacter::Crouch);
@@ -190,6 +206,8 @@ void AFPCCharacter::OnFire()
 	UAnimInstance* PistolAnimInstance = Pistol->GetAnimInstance();
 	UAnimInstance* AssaultRifleInstance = Assault_Rifle->GetAnimInstance();
 	UAnimInstance* RocketLauncherInstance = Rocket_Launcher->GetAnimInstance();
+	UAnimInstance* GrenadeLauncherInstance = Grenade_Launcher->GetAnimInstance();
+	UAnimInstance* SniperRifleInstance = Sniper_Rifle->GetAnimInstance();
 
 	switch (weapon)
 	{
@@ -521,6 +539,66 @@ void AFPCCharacter::OnFire()
 			}
 		}
 		break;
+	case sniper:
+		if (Sniper_Ammo > 0 && !IsReloading)
+		{
+			// try and fire a projectile
+			if (Sniper_ProjectileClass != nullptr)
+			{
+				if (World != nullptr)
+				{
+					const FRotator SpawnRotation = { GetControlRotation().Pitch,GetControlRotation().Yaw,GetControlRotation().Roll};
+					const FVector SpawnLocation = Sniper_Rifle->GetSocketLocation("ProjectileLocationSocket");
+					//Set Spawn Collision Handling Override
+					FActorSpawnParameters ActorSpawnParams;
+					ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+					// spawn the projectile at the muzzle
+					World->SpawnActor<AFPCProjectile_Sniper>(Sniper_ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+					Sniper_Ammo--;
+
+					if (IsADS)
+					{
+						float RecoilUpDown = FMath::FRandRange(0, -.2);
+						float RecoilLeftRight = FMath::FRandRange(-.01, .01);
+
+						AddControllerPitchInput(RecoilUpDown);
+						AddControllerYawInput(RecoilLeftRight);
+					}
+					else
+					{
+						float RecoilUpDown = FMath::FRandRange(0, -.5);
+						float RecoilLeftRight = FMath::FRandRange(-0.5, 0.5);
+
+						AddControllerPitchInput(RecoilUpDown);
+						AddControllerYawInput(RecoilLeftRight);
+
+					}
+				}
+			}
+
+			// try and play a firing animation if specified
+			if (AssaultRifle_FireAnimation != nullptr)
+			{
+				// Get the animation object for the arms mesh
+				if (AnimInstance != nullptr)
+				{
+					if (!IsADS)
+					{
+						AnimInstance->Montage_Play(AssaultRifle_FireAnimation, 2.5f);
+					}
+					else
+					{
+						AnimInstance->Montage_Play(AssaultRifle_ADS_FireAnimation, 2.5f);
+					}
+				}
+			}
+			if (SniperRifleInstance != nullptr)
+			{
+				Sniper_Rifle->PlayAnimation(SniperRifle_Fire_FireAnimation, false);
+			}
+		}
+		break;
 	}
 }
 
@@ -548,6 +626,10 @@ void AFPCCharacter::OnBeginFire()
 		OnFire();
 		IsFiring = true;
 		break;
+	case sniper:
+		OnFire();
+		IsFiring = true;
+		break;
 	}	
 }
 
@@ -569,7 +651,6 @@ void AFPCCharacter::Reload()
 			if (AnimInstance != nullptr)
 			{
 				AnimInstance->Montage_Play(AssaultRifle_ReloadingAnimation, 1.0f);
-
 			}
 			if (AssaultRifle_ReloadingAnimation_Montage != nullptr)
 			{
@@ -607,6 +688,16 @@ void AFPCCharacter::Reload()
 				AnimInstance->Montage_Play(Rocket_ReloadingAnimation, 1.0f);
 			}
 			break;
+		case sniper:
+			if (AnimInstance != nullptr)
+			{
+				AnimInstance->Montage_Play(AssaultRifle_ReloadingAnimation, 1.0f);
+			}
+			if (AssaultRifle_ReloadingAnimation_Montage != nullptr)
+			{
+				Sniper_Rifle->PlayAnimation(SniperRifle_Reloading_Animation, false);
+			}
+			break;
 		}
 	}
 }
@@ -636,6 +727,9 @@ void AFPCCharacter::WeaponSelectOne()
 		Shot_Gun->bPauseAnims = true;
 		Shot_Gun->SetVisibility(false);
 
+		Sniper_Rifle->SetVisibility(false);
+		Sniper_Rifle->bPauseAnims = true;
+
 		if (AssaultRifle_AnimClass != nullptr)
 		{
 			Mesh1P->SetAnimInstanceClass(AssaultRifle_AnimClass);
@@ -663,6 +757,9 @@ void AFPCCharacter::WeaponSelectTwo()
 
 		Grenade_Launcher->bPauseAnims = true;
 		Grenade_Launcher->SetVisibility(false);
+
+		Sniper_Rifle->SetVisibility(false);
+		Sniper_Rifle->bPauseAnims = true;
 
 		Shot_Gun->SetVisibility(false);
 		Assault_Rifle->SetVisibility(false);
@@ -694,6 +791,9 @@ void AFPCCharacter::WeaponSelectThree()
 		Assault_Rifle->bPauseAnims = true;
 		Assault_Rifle->SetVisibility(false);
 
+		Sniper_Rifle->SetVisibility(false);
+		Sniper_Rifle->bPauseAnims = true;
+
 		Grenade_Launcher->bPauseAnims = true;
 		Grenade_Launcher->SetVisibility(false);
 
@@ -724,6 +824,9 @@ void AFPCCharacter::WeaponSelectFour()
 
 		Shot_Gun->SetVisibility(false);
 		Shot_Gun->bPauseAnims = true;
+
+		Sniper_Rifle->SetVisibility(false);
+		Sniper_Rifle->bPauseAnims = true;
 
 		Grenade_Launcher->bPauseAnims = true;
 		Grenade_Launcher->SetVisibility(false);
@@ -760,6 +863,9 @@ void AFPCCharacter::WeaponSelectFive()
 		Rocket_Launcher->bPauseAnims = true;
 		Rocket_Launcher->SetVisibility(false);
 
+		Sniper_Rifle->SetVisibility(false);
+		Sniper_Rifle->bPauseAnims = true;
+
 		Grenade_Launcher->bPauseAnims = false;
 		Grenade_Launcher->SetVisibility(true);
 
@@ -768,6 +874,42 @@ void AFPCCharacter::WeaponSelectFive()
 			 Mesh1P->SetAnimInstanceClass(Rocket_AnimClass);
 		}
 	}
+}
+
+void AFPCCharacter::WeaponSelectSix()
+{
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
+	{
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalOffset(FVector(-5.0f, 15.0f, -13.0f));
+		}
+		weapon = Weapons::sniper;
+
+		Pistol->SetVisibility(false);
+		Pistol->bPauseAnims = true;
+
+		Assault_Rifle->bPauseAnims = true;
+		Assault_Rifle->SetVisibility(false);
+
+		Shot_Gun->SetVisibility(false);
+		Shot_Gun->bPauseAnims = true;
+
+		Rocket_Launcher->bPauseAnims = true;
+		Rocket_Launcher->SetVisibility(false);
+
+		Grenade_Launcher->bPauseAnims = true;
+		Grenade_Launcher->SetVisibility(false);
+
+		Sniper_Rifle->bPauseAnims = false;
+		Sniper_Rifle->SetVisibility(true);
+
+		if (AssaultRifle_AnimClass != nullptr)
+		{
+			Mesh1P->SetAnimInstanceClass(AssaultRifle_AnimClass);
+		}
+	}
+
 }
 
 
@@ -801,6 +943,11 @@ void AFPCCharacter::AimDownSight()
 		{
 			Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket_ADS"));
 		}
+		else if (weapon == sniper)
+		{
+			Sniper_Rifle->SetVisibility(false);
+			Mesh1P->SetVisibility(false);
+		}
 		AimDownBP();
 }
 
@@ -819,6 +966,11 @@ void AFPCCharacter::ReleaseAim()
 		else if (weapon == grenadeLauncher)
 		{
 			Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket"));
+		}
+		else if (weapon == sniper)
+		{
+			Sniper_Rifle->SetVisibility(true);
+			Mesh1P->SetVisibility(true);
 		}
 
 		ReleaseAimBP();

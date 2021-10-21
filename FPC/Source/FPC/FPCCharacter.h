@@ -19,7 +19,8 @@ enum Weapons
 	pistol UMETA(DisplayName = "Pistol"),
 	shotgun UMETA(DisplayName = "ShotGun"),
 	rocket UMETA(DisplayName = "Rocket"),
-	grenadeLauncher UMETA(DisplayName = "Grenade Launcher")
+	grenadeLauncher UMETA(DisplayName = "Grenade Launcher"),
+	sniper UMETA(DisplayName = "Sniper")
 };
 UCLASS(config=Game)
 class AFPCCharacter : public ACharacter
@@ -62,6 +63,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
 		USkeletalMeshComponent* Grenade_Launcher;
 
+	/** Pawn mesh: 1st person view (arms; seen only by self) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
+		USkeletalMeshComponent* Sniper_Rifle;
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -89,6 +94,10 @@ public:
 	/** Projectile class to spawn */
 	UPROPERTY(EditDefaultsOnly, Category = Projectile)
 	TSubclassOf<class AFPCProjectile_Grenade> Grenade_ProjectileClass;
+
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+	TSubclassOf<class AFPCProjectile_Sniper> Sniper_ProjectileClass;
 
 	/** AnimMontages to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
@@ -159,7 +168,13 @@ public:
 	UAnimMontage* Rocket_ADS_FireAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
-		UAnimMontage* GrenadeLauncher_Fire_FireAnimation;
+	UAnimMontage* GrenadeLauncher_Fire_FireAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimMontage* SniperRifle_Fire_FireAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimMontage* SniperRifle_Reloading_Animation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	FTimerHandle FireTimerHandle;
@@ -178,6 +193,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		float GrenadeLauncher_Ammo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		float Sniper_Ammo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		bool IsReloading;
@@ -248,6 +266,8 @@ protected:
 	void WeaponSelectFour();
 
 	void WeaponSelectFive();
+
+	void WeaponSelectSix();
 
 	void Crouch();
 
