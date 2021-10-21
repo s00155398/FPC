@@ -2,6 +2,14 @@
 This Repo contains a First person Shooter Project using C++, made within Unreal Engine 4.
 
 <p align="center">
+Sniper Showcase
+</p>
+
+<p align="center">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/eHYzK6w9fls" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+</p>
+
+<p align="center">
 Grenade Launcher Showcase
 </p>
 
