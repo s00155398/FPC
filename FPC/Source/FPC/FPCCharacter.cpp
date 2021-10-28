@@ -90,6 +90,12 @@ AFPCCharacter::AFPCCharacter()
 	Sniper_Rifle->SetupAttachment(Mesh1P, TEXT("Sniper_GripSocket"));
 	Sniper_Rifle->SetupAttachment(RootComponent);
 
+	Combat_Knife = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Combat Knife"));
+	Combat_Knife->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
+	Combat_Knife->bCastDynamicShadow = false;
+	Combat_Knife->CastShadow = false;
+	Combat_Knife->SetupAttachment(Mesh1P, TEXT("Knife_GripSocket"));
+	Combat_Knife->SetupAttachment(RootComponent);
 
 	AssaultRifle_Ammo = 30;
 	Pistol_Ammo = 15;
@@ -106,6 +112,7 @@ AFPCCharacter::AFPCCharacter()
 	Rocket_Launcher->SetVisibility(false);
 	Grenade_Launcher->SetVisibility(false);
 	Sniper_Rifle->SetVisibility(false);
+	Combat_Knife->SetVisibility(false);
 }
 
 void AFPCCharacter::BeginPlay()
@@ -119,6 +126,7 @@ void AFPCCharacter::BeginPlay()
 	Rocket_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("RocketLauncher_GripSocket"));
 	Grenade_Launcher->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GrenadeLauncher_GripSocket"));
 	Sniper_Rifle->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("Sniper_GripSocket"));
+	Combat_Knife->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("Knife_GripSocket"));
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	Mesh1P->SetHiddenInGame(false, true);
 
@@ -141,6 +149,9 @@ void AFPCCharacter::BeginPlay()
 		break;
 	case sniper:
 		WeaponSelectSix();
+		break;
+	case knife:
+		WeaponSelectSeven();
 		break;
 	}
 }
@@ -172,6 +183,7 @@ void AFPCCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInput
 	PlayerInputComponent->BindAction("WeaponSelectFour", IE_Pressed, this, &AFPCCharacter::WeaponSelectFour);
 	PlayerInputComponent->BindAction("WeaponSelectFive", IE_Pressed, this, &AFPCCharacter::WeaponSelectFive);
 	PlayerInputComponent->BindAction("WeaponSelectSix", IE_Pressed, this, &AFPCCharacter::WeaponSelectSix);
+	PlayerInputComponent->BindAction("WeaponSelectSeven", IE_Pressed, this, &AFPCCharacter::WeaponSelectSeven);
 	
 
 	// Bind player crouching events
@@ -599,6 +611,28 @@ void AFPCCharacter::OnFire()
 			}
 		}
 		break;
+	case knife:
+		if (!IsKnifeSwinging)
+		{
+			IsKnifeSwinging = true;
+			int ranNum = FMath::RandRange(1, 2);
+			switch (ranNum)
+			{
+			case 1:
+				if (AnimInstance != nullptr)
+				{
+					AnimInstance->Montage_Play(Knife_Stab_One_Animation, 1.0f);
+				}
+				break;
+			case 2:
+				if (AnimInstance != nullptr)
+				{
+					AnimInstance->Montage_Play(Knife_Stab_Two_Animation, 1.0f);
+				}
+				break;
+			}
+		}
+		break;
 	}
 }
 
@@ -627,6 +661,10 @@ void AFPCCharacter::OnBeginFire()
 		IsFiring = true;
 		break;
 	case sniper:
+		OnFire();
+		IsFiring = true;
+		break;
+	case knife:
 		OnFire();
 		IsFiring = true;
 		break;
@@ -727,6 +765,9 @@ void AFPCCharacter::WeaponSelectOne()
 		Shot_Gun->bPauseAnims = true;
 		Shot_Gun->SetVisibility(false);
 
+		Combat_Knife->bPauseAnims = true;
+		Combat_Knife->SetVisibility(false);
+
 		Sniper_Rifle->SetVisibility(false);
 		Sniper_Rifle->bPauseAnims = true;
 
@@ -761,6 +802,9 @@ void AFPCCharacter::WeaponSelectTwo()
 		Sniper_Rifle->SetVisibility(false);
 		Sniper_Rifle->bPauseAnims = true;
 
+		Combat_Knife->bPauseAnims = true;
+		Combat_Knife->SetVisibility(false);
+
 		Shot_Gun->SetVisibility(false);
 		Assault_Rifle->SetVisibility(false);
 
@@ -794,8 +838,12 @@ void AFPCCharacter::WeaponSelectThree()
 		Sniper_Rifle->SetVisibility(false);
 		Sniper_Rifle->bPauseAnims = true;
 
+		Combat_Knife->bPauseAnims = true;
+		Combat_Knife->SetVisibility(false);
+
 		Grenade_Launcher->bPauseAnims = true;
 		Grenade_Launcher->SetVisibility(false);
+
 
 		Shot_Gun->SetVisibility(true);
 
@@ -830,6 +878,9 @@ void AFPCCharacter::WeaponSelectFour()
 
 		Grenade_Launcher->bPauseAnims = true;
 		Grenade_Launcher->SetVisibility(false);
+
+		Combat_Knife->bPauseAnims = true;
+		Combat_Knife->SetVisibility(false);
 
 		Rocket_Launcher->bPauseAnims = false;
 		Rocket_Launcher->SetVisibility(true);
@@ -866,6 +917,9 @@ void AFPCCharacter::WeaponSelectFive()
 		Sniper_Rifle->SetVisibility(false);
 		Sniper_Rifle->bPauseAnims = true;
 
+		Combat_Knife->bPauseAnims = true;
+		Combat_Knife->SetVisibility(false);
+
 		Grenade_Launcher->bPauseAnims = false;
 		Grenade_Launcher->SetVisibility(true);
 
@@ -901,6 +955,9 @@ void AFPCCharacter::WeaponSelectSix()
 		Grenade_Launcher->bPauseAnims = true;
 		Grenade_Launcher->SetVisibility(false);
 
+		Combat_Knife->bPauseAnims = true;
+		Combat_Knife->SetVisibility(false);
+
 		Sniper_Rifle->bPauseAnims = false;
 		Sniper_Rifle->SetVisibility(true);
 
@@ -910,6 +967,44 @@ void AFPCCharacter::WeaponSelectSix()
 		}
 	}
 
+}
+
+void AFPCCharacter::WeaponSelectSeven()
+{
+	if (!IsReloading && !IsADS && !IsFiring && !IsShotgunFiring)
+	{
+		if (weapon == shotgun)
+		{
+			Mesh1P->AddLocalOffset(FVector(-5.0f, 15.0f, -13.0f));
+		}
+		weapon = Weapons::knife;
+
+		Pistol->SetVisibility(false);
+		Pistol->bPauseAnims = true;
+
+		Assault_Rifle->bPauseAnims = true;
+		Assault_Rifle->SetVisibility(false);
+
+		Shot_Gun->SetVisibility(false);
+		Shot_Gun->bPauseAnims = true;
+
+		Rocket_Launcher->bPauseAnims = true;
+		Rocket_Launcher->SetVisibility(false);
+
+		Grenade_Launcher->bPauseAnims = true;
+		Grenade_Launcher->SetVisibility(false);
+
+		Sniper_Rifle->bPauseAnims = true;
+		Sniper_Rifle->SetVisibility(false);
+
+		Combat_Knife->bPauseAnims = false;
+		Combat_Knife->SetVisibility(true);
+
+		if (Knife_AnimClass != nullptr)
+		{
+			Mesh1P->SetAnimInstanceClass(Knife_AnimClass);
+		}
+	}
 }
 
 
@@ -929,6 +1024,8 @@ void AFPCCharacter::UnCrouch()
 
 void AFPCCharacter::AimDownSight()
 {
+	if (weapon != knife)
+	{
 		IsADS = true;
 		GetCharacterMovement()->MaxWalkSpeed = 250.0f;
 		if (weapon == shotgun)
@@ -949,10 +1046,13 @@ void AFPCCharacter::AimDownSight()
 			Mesh1P->SetVisibility(false);
 		}
 		AimDownBP();
+		}
 }
 
 void AFPCCharacter::ReleaseAim()
 {
+	if (weapon != knife)
+	{
 		IsADS = false;
 		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 		if (weapon == shotgun)
@@ -974,6 +1074,7 @@ void AFPCCharacter::ReleaseAim()
 		}
 
 		ReleaseAimBP();
+	}
 }
 
 

@@ -20,7 +20,8 @@ enum Weapons
 	shotgun UMETA(DisplayName = "ShotGun"),
 	rocket UMETA(DisplayName = "Rocket"),
 	grenadeLauncher UMETA(DisplayName = "Grenade Launcher"),
-	sniper UMETA(DisplayName = "Sniper")
+	sniper UMETA(DisplayName = "Sniper"),
+	knife UMETA(DisplayName = "Combat Knife")
 };
 UCLASS(config=Game)
 class AFPCCharacter : public ACharacter
@@ -66,6 +67,10 @@ public:
 	/** Pawn mesh: 1st person view (arms; seen only by self) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
 		USkeletalMeshComponent* Sniper_Rifle;
+
+	/** Pawn mesh: 1st person view (arms; seen only by self) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
+		USkeletalMeshComponent* Combat_Knife;
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
@@ -176,6 +181,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimMontage* SniperRifle_Reloading_Animation;
 
+	/** AnimMontages to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimMontage* Knife_Stab_One_Animation;
+
+	/** AnimMontage to play each time we reload*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimMontage* Knife_Stab_Two_Animation;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	FTimerHandle FireTimerHandle;
 
@@ -208,6 +221,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		bool IsShotgunFiring;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		bool IsKnifeSwinging;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Weapon)
 		TEnumAsByte<Weapons> weapon;
@@ -246,6 +262,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 	UAnimBlueprintGeneratedClass* Rocket_AnimClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+	UAnimBlueprintGeneratedClass* Knife_AnimClass;
+
 protected:
 	
 	/** Fires a projectile. */
@@ -268,6 +287,8 @@ protected:
 	void WeaponSelectFive();
 
 	void WeaponSelectSix();
+
+	void WeaponSelectSeven();
 
 	void Crouch();
 
